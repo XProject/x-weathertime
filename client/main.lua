@@ -1,12 +1,21 @@
 local export = lib.require("files.api")
 local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
-local currentWeather, settingForceWeather
+local currentWeather, currentRainLevel, settingForceWeather
 
+---@param hour integer
+---@param minute integer
+---@param second integer
+local function setTime(hour, minute, second)
+    NetworkOverrideClockTime(hour, minute, second)
+end
 
 ---@param weather string
 ---@param options? weatherTimeOptions
-local function setWeather(weather, options)
+---@param cb? fun(waitTime: number)
+local function setWeather(weather, options, cb)
     if weather ~= currentWeather then
+        currentRainLevel = options?.rainLevel
+
         ClearOverrideWeather()
         ClearWeatherTypePersist()
     end
@@ -21,23 +30,29 @@ local function setWeather(weather, options)
         SetWeatherTypeOvertimePersist(weather, waitTime)
     end
 
-    Wait(waitTime * 1000)
+    waitTime = waitTime * 1000
 
-    SetForceVehicleTrails(weather == "XMAS")
-    SetForcePedFootstepsTracks(weather == "XMAS")
+    if cb then CreateThread(function() cb(waitTime) end) end
+
+    Wait(waitTime)
+
+    local isXmas = weather == "XMAS"
+    local rainLevel = currentRainLevel or (weather == "RAIN" and 0.5) or (weather == "THUNDER" and 1.0) or 0.0
+
+    SetForceVehicleTrails(isXmas)
+    SetForcePedFootstepsTracks(isXmas)
+    SetRainLevel(rainLevel)
 
     currentWeather = weather
-end
-
-local function setTime(hour, minute, second)
-    NetworkOverrideClockTime(hour, minute, second)
+    currentRainLevel = rainLevel
 end
 
 ---@param weather? string | integer | number
 ---@param time? time
 ---@param options? weatherTimeOptions
+---@param cb? fun(waitTime: number)
 ---@return boolean
-function export.forceWeatherTime(weather, time, options)
+function export.forceWeatherTime(weather, time, options, cb)
     local typeWeather = type(weather)
 
     if typeWeather ~= "string" and typeWeather ~= "number" and typeWeather ~= "nil" then return false end
@@ -61,15 +76,22 @@ function export.forceWeatherTime(weather, time, options)
     elseif time.minute < 0 or time.minute > 59 then return false
     elseif time.second < 0 or time.second > 59 then return false end
 
+    while settingForceWeather do Wait(1000) end -- check to wait for the previous function call if this is an async call
+
     settingForceWeather = true
 
-    setWeather(weather, options)
-
     setTime(time.hour, time.minute, time.second)
+
+    setWeather(weather, options, cb)
 
     settingForceWeather = false
 
     return true
+end
+
+---@return string
+function export.getCurrentWeather()
+    return currentWeather
 end
 
 CreateThread(function()
@@ -77,7 +99,7 @@ CreateThread(function()
 
     while true do
         if not settingForceWeather then
-            setWeather(currentWeather)
+            setWeather(currentWeather, currentWeatherOptions)
         end
 
         Wait(1000)
@@ -87,5 +109,5 @@ end)
 RegisterCommand("weather", function(_, args)
     if not type(args?[1]) =="string" then return end
 
-    export.forceWeatherTime(args[1])
+    export.forceWeatherTime(args[1], nil, {rainLevel = 1.0})
 end, false)

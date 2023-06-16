@@ -3,6 +3,7 @@
 ---@class weatherTimeOptions
 ---@field instantTransition? boolean
 ---@field transitionSpeed? number
+---@field rainLevel? number
 
 ---@class time
 ---@field hour? integer (passing wrong data (e.g. hours above 23) will cause the game to crash)

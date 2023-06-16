@@ -9,7 +9,8 @@ repository "https://github.com/XProject/x-weathertime"
 description "Project-X Weather & Time: Weather and Time management resource"
 
 files {
-    "files/*"
+    "files/*",
+    "locales/*"
 }
 
 shared_scripts {

@@ -1,0 +1,8 @@
+{
+    "weather_main_menu_title": "Weather/Time Menu",
+    "weather_main_menu_weather": "Change Weather",
+    "weather_main_menu_current_weather": "Current Weather: %s",
+    "weather_dialog_menu_label": "Choose a Weather",
+    "weather_menu_setting_weather": "Setting Weather to %s",
+    "weather_menu_not_accessible": "The Weather/Time Menu is Not Accessible Now! Wait Until the Current Progress is Finished..."
+}
