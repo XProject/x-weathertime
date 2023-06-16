@@ -1,6 +1,6 @@
 local export = lib.require("files.api")
 local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
-local currentWeather, currentRainLevel, settingForceWeather
+local currentWeather, currentRainLevel, settingWeather, settingForceWeather
 
 ---@param hour integer
 ---@param minute integer
@@ -13,14 +13,20 @@ end
 ---@param options? weatherTimeOptions
 ---@param cb? fun(waitTime: number)
 local function setWeather(weather, options, cb)
+    while settingWeather do Wait(1000) end
+
+    settingWeather = true
+
     if weather ~= currentWeather then
         currentRainLevel = options?.rainLevel
 
         ClearOverrideWeather()
         ClearWeatherTypePersist()
+    else
+        currentRainLevel = options?.rainLevel or currentRainLevel
     end
 
-    local waitTime = options?.instantTransition and 0 or options?.transitionSpeed or 15.0
+    local waitTime = options?.instantTransition and 0.0 or options?.transitionSpeed or 0.0
 
     if options?.instantTransition then
         SetWeatherTypePersist(weather)
@@ -45,6 +51,8 @@ local function setWeather(weather, options, cb)
 
     currentWeather = weather
     currentRainLevel = rainLevel
+
+    settingWeather = false
 end
 
 ---@param weather? string | integer | number
@@ -95,14 +103,14 @@ function export.getCurrentWeather()
 end
 
 CreateThread(function()
-    print(export.forceWeatherTime(nil, nil, {instantTransition = true}))
+    export.forceWeatherTime(nil, nil, {instantTransition = true})
 
     while true do
         if not settingForceWeather then
-            setWeather(currentWeather, currentWeatherOptions)
+            setWeather(currentWeather, currentRainLevel and {rainLevel = currentRainLevel})
         end
 
-        Wait(1000)
+        Wait(10000)
     end
 end)
 
