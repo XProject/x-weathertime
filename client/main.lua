@@ -2,6 +2,7 @@ local export = lib.require("files.api")
 local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
 local currentWeather, currentRainLevel, settingWeather, settingForceWeather
 local currentHour, currentMinute, currentSecond
+local isInitialized
 
 ---@param hour integer
 ---@param minute integer
@@ -35,7 +36,7 @@ local function setWeather(weather, options, cb)
         currentRainLevel = options?.rainLevel or currentRainLevel
     end
 
-    local waitTime = type(options?.transitionSpeed) == "number" and options?.transitionSpeed or 0.0
+    local waitTime = type(options?.transitionSpeed) == "number" and options?.transitionSpeed or 0.0 ---@diagnostic disable-line: need-check-nil
 
     if waitTime > 0 then
         SetWeatherTypeOvertimePersist(weather, waitTime)
@@ -76,24 +77,22 @@ function export.forceWeatherTime(weather, time, options, cb)
 
     if typeWeather ~= "string" and typeWeather ~= "number" and typeWeather ~= "nil" then return false end
 
-    weather = WEATHERS[typeWeather == "string" and joaat(weather) or weather or joaat("EXTRASUNNY")] --[[@as string?]]
+    weather = WEATHERS[typeWeather == "string" and joaat(weather) or weather or currentWeather] --[[@as string?]]
 
-    if not weather then return false end
+    if not weather or type(time) ~= "table" then return false end
 
-    time = {
-        hour = time?.hour or 18,
-        minute = time?.minute or 0,
-        second = time?.second or 0
-    }
+    time.hour = time.hour or currentHour
+    time.minute = time.minute or currentMinute
+    time.second = time.second or currentSecond
 
     for k, v in pairs(time) do
         if type(v) ~= "number" then return false end
         time[k] = math.floor(v)
     end
 
-    if time.hour < 0 or time.hour > 24 then return false
-    elseif time.minute < 0 or time.minute > 60 then return false
-    elseif time.second < 0 or time.second > 60 then return false end
+    if time.hour < 0 then return false
+    elseif time.minute < 0 then return false
+    elseif time.second < 0 then return false end
 
     while settingForceWeather do Wait(1000) end -- check to wait for the previous function call if this is an async call
 
@@ -128,30 +127,33 @@ function export.getCurrentSecond()
     return currentSecond
 end
 
-do export.forceWeatherTime() end -- initialize weather & time
+do TriggerServerEvent("x-weathertime:requestWeatherTime") end
 
-CreateThread(function()
-    local waitTime = Config.TimeCycleSpeed * 1000
+---Starts the loop - Internal use
+local function initialize()
+    if isInitialized then return end
 
-    NetworkOverrideClockMillisecondsPerGameMinute(waitTime)
+    isInitialized = true
 
-    while true do
-        if not settingForceWeather then
-            setWeather(currentWeather)
+    CreateThread(function()
+        local waitTime = Config.TimeCycleSpeed * 1000
 
-            setTime(currentHour, currentMinute, currentSecond + 30)
+        NetworkOverrideClockMillisecondsPerGameMinute(waitTime)
+
+        while isInitialized do
+            if not settingForceWeather then
+                setWeather(currentWeather)
+
+                setTime(currentHour, currentMinute, currentSecond + 30)
+            end
+
+            Wait(waitTime)
         end
+    end)
+end
 
-        Wait(waitTime)
-    end
-end)
+RegisterNetEvent("x-weathertime:syncWeatherTime", function(weather, time)
+    export.forceWeatherTime(weather, time)
 
-RegisterCommand("weather", function(_, args)
-    if not type(args?[1]) =="string" then return end
-
-    export.forceWeatherTime(args[1], nil, {rainLevel = 1.0})
-end, false)
-
-RegisterNetEvent("x-weathertime:setTime", function(time)
-    export.forceWeatherTime(export.getCurrentWeather(), time)
+    if not isInitialized then initialize() end
 end)
