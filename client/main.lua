@@ -154,6 +154,8 @@ end
 
 RegisterNetEvent("x-weathertime:syncWeatherTime", function(weather, time)
     export.forceWeatherTime(weather, time)
+end)
 
+RegisterNetEvent("x-weathertime:initialize", function()
     if not isInitialized then initialize() end
 end)

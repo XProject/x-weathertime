@@ -53,6 +53,8 @@ end
 
 RegisterServerEvent("x-weathertime:requestWeatherTime", function()
     syncWeatherTime(source)
+
+    TriggerClientEvent("x-weathertime:initialize", source)
 end)
 
 RegisterServerEvent("x-weathertime:newWeather", function(timestamp)
