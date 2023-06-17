@@ -1,9 +1,8 @@
 local export = lib.require("files.api")
 local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
 local weatherMenuId = ("%s_main_menu"):format(cache.resource)
-local weatherIcon = "fa-solid fa-temperature-half"
-local weatherTransitionSpeedIcon = "fa-solid fa-clock"
-local weatherRainIcon = "fa-solid fa-raindrops"
+local weatherIcon, weatherTransitionSpeedIcon, weatherRainIcon = "fa-solid fa-temperature-half", "fa-solid fa-clock", "fa-solid fa-raindrops"
+local timeIcon = "fa-solid fa-clock"
 local resourceExport = exports[cache.resource]
 
 function export.openMenu()
@@ -14,7 +13,8 @@ function export.openMenu()
         duration = 5000
     }) end
 
-    local currentWeather = resourceExport:getCurrentWeather()
+    local currentHour = resourceExport:getCurrentHour()
+    local currentMinute = resourceExport:getCurrentMinute()
 
     lib.registerContext({
         id = weatherMenuId,
@@ -24,7 +24,7 @@ function export.openMenu()
             {
                 title = locale("weather_main_menu_weather"),
                 icon = weatherIcon,
-                description = locale("weather_main_menu_current_weather", currentWeather),
+                description = locale("weather_main_menu_current_weather", resourceExport:getCurrentWeather()),
                 onSelect = function()
                     local weatherOptions, weatherCount = {}, 0
 
@@ -36,8 +36,8 @@ function export.openMenu()
                     lib.hideContext()
 
                     local dialogBox = lib.inputDialog(locale("weather_main_menu_weather"), {
-                        { type = "select", label = locale("weather_dialog_menu_weather_label"), icon = weatherIcon, options = weatherOptions, default = joaat(currentWeather) },
-                        { type = "number", label = locale("weather_dialog_menu_transition_label"), icon = weatherTransitionSpeedIcon, default = 15.0, min = 0.0 },
+                        { type = "select", label = locale("weather_dialog_menu_weather_label"), icon = weatherIcon, options = weatherOptions, default = joaat(resourceExport:getCurrentWeather()) },
+                        { type = "number", label = locale("weather_dialog_menu_transition_label"), icon = weatherTransitionSpeedIcon, default = 0.0, min = 0.0 },
                         { type = "slider", label = locale("weather_dialog_menu_rain_label"), icon = weatherRainIcon, default = -1, min = 0.0, max = 1.0, step = 0.1 }
                     }, {
                         allowCancel = true
@@ -46,7 +46,13 @@ function export.openMenu()
                     if dialogBox then
                         dialogBox[3] = dialogBox[3] ~= -1 and dialogBox[3] or nil
 
-                        resourceExport:forceWeatherTime(dialogBox[1], nil, {instantTransition = dialogBox[2] == 0, transitionSpeed = dialogBox[2], rainLevel = dialogBox[3]}, function(waitTime)
+                        resourceExport:forceWeatherTime(dialogBox[1], {
+                            hour = resourceExport:getCurrentHour(),
+                            minute = resourceExport:getCurrentMinute()
+                        }, {
+                            transitionSpeed = dialogBox[2],
+                            rainLevel = dialogBox[3]
+                        }, function(waitTime)
                             lib.progressBar({
                                 duration = waitTime,
                                 label = locale("weather_menu_setting_weather", WEATHERS[dialogBox[1]]),
@@ -54,6 +60,28 @@ function export.openMenu()
                                 canCancel = false
                             })
                         end)
+                    end
+
+                    Wait(500)
+
+                    export.openMenu()
+                end
+            },
+            {
+                title = locale("weather_main_menu_time"),
+                icon = timeIcon,
+                description = locale("weather_main_menu_current_time", currentHour < 10 and ("0%s"):format(currentHour) or currentHour, currentMinute < 10 and ("0%s"):format(currentMinute) or currentMinute),
+                onSelect = function()
+                    lib.hideContext()
+
+                    local dialogBox = lib.inputDialog(locale("weather_main_menu_time"), {
+                        { type = "time", label = locale("weather_dialog_menu_time_label"), icon = timeIcon, format = "24" }
+                    }, {
+                        allowCancel = true
+                    })
+
+                    if dialogBox?[1] then
+                        TriggerServerEvent("x-weathertime:validateTime", dialogBox[1])
                     end
 
                     Wait(500)

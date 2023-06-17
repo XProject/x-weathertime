@@ -1,19 +1,28 @@
 local export = lib.require("files.api")
 local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
 local currentWeather, currentRainLevel, settingWeather, settingForceWeather
+local currentHour, currentMinute, currentSecond
 
 ---@param hour integer
 ---@param minute integer
 ---@param second integer
 local function setTime(hour, minute, second)
+    if second >= 60 then second = 0 minute += 1 end
+    if minute >= 60 then minute = 0 hour += 1 end
+    if hour >= 24 then hour = 0 end
+
     NetworkOverrideClockTime(hour, minute, second)
+
+    currentHour = hour
+    currentMinute = minute
+    currentSecond = second
 end
 
 ---@param weather string
 ---@param options? weatherTimeOptions
 ---@param cb? fun(waitTime: number)
 local function setWeather(weather, options, cb)
-    while settingWeather do Wait(1000) end
+    while settingWeather do Wait(1000) end -- check to wait for the previous function call if this is an async call
 
     settingWeather = true
 
@@ -26,14 +35,16 @@ local function setWeather(weather, options, cb)
         currentRainLevel = options?.rainLevel or currentRainLevel
     end
 
-    local waitTime = options?.instantTransition and 0.0 or options?.transitionSpeed or 0.0
+    local waitTime = type(options?.transitionSpeed) == "number" and options?.transitionSpeed or 0.0
 
-    if options?.instantTransition then
+    if waitTime > 0 then
+        SetWeatherTypeOvertimePersist(weather, waitTime)
+    else
+        waitTime = 0.0 -- making sure the value of waitTime is not less than 0
+
         SetWeatherTypePersist(weather)
         SetWeatherTypeNow(weather)
         SetOverrideWeather(weather)
-    else
-        SetWeatherTypeOvertimePersist(weather, waitTime)
     end
 
     waitTime = waitTime * 1000
@@ -80,9 +91,9 @@ function export.forceWeatherTime(weather, time, options, cb)
         time[k] = math.floor(v)
     end
 
-    if time.hour < 0 or time.hour > 23 then return false
-    elseif time.minute < 0 or time.minute > 59 then return false
-    elseif time.second < 0 or time.second > 59 then return false end
+    if time.hour < 0 or time.hour > 24 then return false
+    elseif time.minute < 0 or time.minute > 60 then return false
+    elseif time.second < 0 or time.second > 60 then return false end
 
     while settingForceWeather do Wait(1000) end -- check to wait for the previous function call if this is an async call
 
@@ -102,15 +113,36 @@ function export.getCurrentWeather()
     return currentWeather
 end
 
+---@return integer | number
+function export.getCurrentHour()
+    return currentHour
+end
+
+---@return integer | number
+function export.getCurrentMinute()
+    return currentMinute
+end
+
+---@return integer | number
+function export.getCurrentSecond()
+    return currentSecond
+end
+
+do export.forceWeatherTime() end -- initialize weather & time
+
 CreateThread(function()
-    export.forceWeatherTime(nil, nil, {instantTransition = true})
+    local waitTime = Config.TimeCycleSpeed * 1000
+
+    NetworkOverrideClockMillisecondsPerGameMinute(waitTime)
 
     while true do
         if not settingForceWeather then
-            setWeather(currentWeather, currentRainLevel and {rainLevel = currentRainLevel})
+            setWeather(currentWeather)
+
+            setTime(currentHour, currentMinute, currentSecond + 30)
         end
 
-        Wait(10000)
+        Wait(waitTime)
     end
 end)
 
@@ -119,3 +151,7 @@ RegisterCommand("weather", function(_, args)
 
     export.forceWeatherTime(args[1], nil, {rainLevel = 1.0})
 end, false)
+
+RegisterNetEvent("x-weathertime:setTime", function(time)
+    export.forceWeatherTime(export.getCurrentWeather(), time)
+end)

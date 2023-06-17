@@ -6,5 +6,8 @@
     "weather_dialog_menu_transition_label": "How Fast the Weather Transition Should Take Place? (Seconds)",
     "weather_dialog_menu_rain_label": "Rain Level?",
     "weather_menu_setting_weather": "Setting Weather to %s",
+    "weather_main_menu_time": "Change Time",
+    "weather_main_menu_current_time": "Current Time: %s:%s",
+    "weather_dialog_menu_time_label": "Choose a Time",
     "weather_menu_not_accessible": "The Weather/Time Menu is Not Accessible Now! Wait Until the Current Progress is Finished..."
 }
