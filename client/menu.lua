@@ -46,20 +46,25 @@ function export.openMenu()
                     if dialogBox then
                         dialogBox[3] = dialogBox[3] ~= -1 and dialogBox[3] or nil
 
-                        resourceExport:forceWeatherTime(dialogBox[1], {
-                            hour = resourceExport:getCurrentHour(),
-                            minute = resourceExport:getCurrentMinute()
-                        }, {
-                            transitionSpeed = dialogBox[2],
-                            rainLevel = dialogBox[3]
-                        }, function(waitTime)
+                        local response, message = lib.callback.await("x-weathertime:setNewWeather", false, dialogBox[1], { transitionSpeed = dialogBox[2], rainLevel = dialogBox[3] })
+
+                        if not response then
+                            if message == "transition_in_progress" then
+                                lib.notify({
+                                    title = locale("weather_main_menu_title"),
+                                    description = locale("transition_in_progress"),
+                                    type = "inform",
+                                    duration = 5000
+                                })
+                            end
+                        elseif dialogBox[2] > 0 then
                             lib.progressBar({
-                                duration = waitTime,
+                                duration = dialogBox[2] * 1000 + 1000,
                                 label = locale("weather_menu_setting_weather", WEATHERS[dialogBox[1]]),
                                 useWhileDead = true, allowRagdoll = true, allowCuffed = true, allowFalling = true,
                                 canCancel = false
                             })
-                        end)
+                        end
                     end
 
                     Wait(500)
@@ -81,7 +86,7 @@ function export.openMenu()
                     })
 
                     if dialogBox?[1] then
-                        TriggerServerEvent("x-weathertime:validateTime", dialogBox[1])
+                        TriggerServerEvent("x-weathertime:newTime", dialogBox[1])
                     end
 
                     Wait(500)

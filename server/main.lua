@@ -1,15 +1,20 @@
 local export = lib.require("files.api")
 local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
 local currentWeather, currentHour, currentMinute, currentSecond
+local isWeatherTransitionInProgress
 
 ---@param source? integer
-local function syncWeatherTime(source)
-    TriggerClientEvent("x-weathertime:syncWeatherTime", source or -1, currentWeather, { hour = currentHour, minute = currentMinute, second = currentSecond })
+---@param options? weatherTimeOptions
+local function syncWeatherTime(source, options)
+    TriggerClientEvent("x-weathertime:syncWeatherTime", source or -1, currentWeather, { hour = currentHour, minute = currentMinute, second = currentSecond }, options)
 end
 
 ---@param weather? string | integer | number
----@return boolean
-function export.setWeather(weather)
+---@param options? weatherTimeOptions
+---@return boolean, string?
+function export.setWeather(weather, options)
+    if isWeatherTransitionInProgress then return false, "transition_in_progress" end
+
     local typeWeather = type(weather)
 
     if typeWeather ~= "string" and typeWeather ~= "number" and typeWeather ~= "nil" then return false end
@@ -20,7 +25,15 @@ function export.setWeather(weather)
 
     currentWeather = weather
 
-    syncWeatherTime()
+    syncWeatherTime(-1, options)
+
+    isWeatherTransitionInProgress = type(options?.transitionSpeed) == "number" and options?.transitionSpeed > 0 ---@diagnostic disable-line: need-check-nil
+
+    if isWeatherTransitionInProgress then
+        SetTimeout(options?.transitionSpeed, function() ---@diagnostic disable-line: need-check-nil
+            isWeatherTransitionInProgress = nil
+        end)
+    end
 
     return true
 end
@@ -57,18 +70,10 @@ RegisterServerEvent("x-weathertime:requestWeatherTime", function()
     TriggerClientEvent("x-weathertime:initialize", source)
 end)
 
-RegisterServerEvent("x-weathertime:newWeather", function(timestamp)
-    if not timestamp then return end
+lib.callback.register("x-weathertime:setNewWeather", function(_, weather, options)
+    -- TODO: Check for source permission
 
-    timestamp = math.floor(timestamp / 1000)
-
-    local date = os.date("%H:%M:%S", timestamp) --[[@as string?]]
-
-    if not date then return end
-
-    local hour, minute, second = string.match(date, "(%d+):(%d+):(%d+)")
-
-    export.setTime(tonumber(hour), tonumber(minute), tonumber(second)) ---@diagnostic disable-line: param-type-mismatch
+    return export.setWeather(weather, options)
 end)
 
 RegisterServerEvent("x-weathertime:newTime", function(timestamp)
