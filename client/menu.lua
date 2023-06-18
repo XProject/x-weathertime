@@ -1,5 +1,5 @@
 local export = lib.require("files.api")
-local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
+local WEATHERS = lib.require("files.weather") --[[@type weathers]]
 local weatherMenuId = ("%s_main_menu"):format(cache.resource)
 local weatherIcon, weatherTransitionSpeedIcon, weatherRainIcon = "fa-solid fa-temperature-half", "fa-solid fa-clock", "fa-solid fa-raindrops"
 local timeIcon = "fa-solid fa-clock"
@@ -13,8 +13,8 @@ function export.openMenu()
         duration = 5000
     }) end
 
-    local currentHour = resourceExport:getCurrentHour()
-    local currentMinute = resourceExport:getCurrentMinute()
+    local currentHour = GetClockHours()
+    local currentMinute = GetClockMinutes()
 
     lib.registerContext({
         id = weatherMenuId,
@@ -37,7 +37,7 @@ function export.openMenu()
 
                     local dialogBox = lib.inputDialog(locale("weather_main_menu_weather"), {
                         { type = "select", label = locale("weather_dialog_menu_weather_label"), icon = weatherIcon, options = weatherOptions, default = joaat(resourceExport:getCurrentWeather()) },
-                        { type = "number", label = locale("weather_dialog_menu_transition_label"), icon = weatherTransitionSpeedIcon, default = 0.0, min = 0.0 },
+                        { type = "number", label = locale("weather_dialog_menu_transition_label"), icon = weatherTransitionSpeedIcon, default = 5.0, min = 0.0 },
                         { type = "slider", label = locale("weather_dialog_menu_rain_label"), icon = weatherRainIcon, default = -1, min = 0.0, max = 1.0, step = 0.1 }
                     }, {
                         allowCancel = true

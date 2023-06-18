@@ -1,5 +1,5 @@
 local export = lib.require("files.api")
-local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
+local WEATHERS = lib.require("files.weather") --[[@type weathers]]
 local currentWeather, currentHour, currentMinute, currentSecond
 local isWeatherTransitionInProgress
 
@@ -66,17 +66,15 @@ end
 
 RegisterServerEvent("x-weathertime:requestWeatherTime", function()
     syncWeatherTime(source)
-
-    TriggerClientEvent("x-weathertime:initialize", source)
 end)
 
 lib.callback.register("x-weathertime:setNewWeather", function(_, weather, options)
     -- TODO: Check for source permission
-
     return export.setWeather(weather, options)
 end)
 
 RegisterServerEvent("x-weathertime:newTime", function(timestamp)
+    -- TODO: Check for source permission
     if not timestamp then return end
 
     timestamp = math.floor(timestamp / 1000)
@@ -91,11 +89,16 @@ RegisterServerEvent("x-weathertime:newTime", function(timestamp)
 end)
 
 CreateThread(function()
-    local waitTime = Config.TimeCycleSpeed * 1000 * 4
+    local defaultWait = 2000
+    local minuteAddition = defaultWait / (Config.TimeCycleSpeed * 1000) -- by default each 2000 milliseconds should add 1 minute to the time based on GTA's default. We generate the new amount based on Config.TimeCycleSpeed for shadow smoothness
+    local waitSeconds = 5
+
+    minuteAddition = minuteAddition * waitSeconds
+    waitSeconds = waitSeconds * defaultWait
 
     while true do
-        export.setTime(currentHour, currentMinute + 2, currentSecond)
+        export.setTime(currentHour, currentMinute + minuteAddition, currentSecond)
 
-        Wait(waitTime)
+        Wait(waitSeconds)
     end
 end)

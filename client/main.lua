@@ -1,8 +1,7 @@
 local export = lib.require("files.api")
-local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
+local VALID_TIME_TYPES = lib.require("files.timeTypes") --[[@type validTimeTypes]]
+local WEATHERS, VALID_WEATHER_TYPES = lib.require("files.weather"), lib.require("files.weatherTypes") --[[@type weathers]] --[[@type validWeatherTypes]]
 local currentWeather, currentRainLevel, settingWeather, settingForceWeather
-local currentHour, currentMinute, currentSecond
-local isInitialized
 
 ---@param hour integer
 ---@param minute integer
@@ -13,17 +12,12 @@ local function setTime(hour, minute, second)
     if hour >= 24 then hour = 0 end
 
     NetworkOverrideClockTime(hour, minute, second)
-
-    currentHour = hour
-    currentMinute = minute
-    currentSecond = second
 end
 
 ---@param weather string
 ---@param options? weatherTimeOptions
----@param cb? fun(waitTime: number)
-local function setWeather(weather, options, cb)
-    while settingWeather do Wait(1000) end -- check to wait for the previous function call if this is an async call
+local function setWeather(weather, options)
+    while settingWeather do Wait(500) end -- check to wait for the previous function call if this is an async call
 
     settingWeather = true
 
@@ -50,8 +44,6 @@ local function setWeather(weather, options, cb)
 
     waitTime = waitTime * 1000
 
-    if cb then CreateThread(function() cb(waitTime) end) end
-
     Wait(waitTime)
 
     local isXmas = weather == "XMAS"
@@ -70,20 +62,21 @@ end
 ---@param weather? string | integer | number
 ---@param time? time
 ---@param options? weatherTimeOptions
----@param cb? fun(waitTime: number)
 ---@return boolean
-function export.forceWeatherTime(weather, time, options, cb)
+function export.forceWeatherTime(weather, time, options)
     local typeWeather = type(weather)
+    local typeTime = type(time)
 
-    if typeWeather ~= "string" and typeWeather ~= "number" and typeWeather ~= "nil" then return false end
+    if not VALID_WEATHER_TYPES[typeWeather] or not VALID_TIME_TYPES[typeTime] then return false end
 
     weather = WEATHERS[typeWeather == "string" and joaat(weather) or weather or currentWeather] --[[@as string?]]
+    time = time or {}
 
-    if not weather or type(time) ~= "table" then return false end
+    if not weather then return false end
 
-    time.hour = time.hour or currentHour
-    time.minute = time.minute or currentMinute
-    time.second = time.second or currentSecond
+    time.hour = time.hour or GetClockHours()
+    time.minute = time.minute or GetClockMinutes()
+    time.second = time.second or GetClockSeconds()
 
     for k, v in pairs(time) do
         if type(v) ~= "number" then return false end
@@ -94,13 +87,13 @@ function export.forceWeatherTime(weather, time, options, cb)
     elseif time.minute < 0 then return false
     elseif time.second < 0 then return false end
 
-    while settingForceWeather do Wait(1000) end -- check to wait for the previous function call if this is an async call
+    while settingForceWeather do Wait(500) end -- check to wait for the previous function call if this is an async call
 
     settingForceWeather = true
 
     setTime(time.hour, time.minute, time.second)
 
-    setWeather(weather, options, cb)
+    setWeather(weather, options)
 
     settingForceWeather = false
 
@@ -112,50 +105,13 @@ function export.getCurrentWeather()
     return currentWeather
 end
 
----@return integer | number
-function export.getCurrentHour()
-    return currentHour
-end
+do
+    NetworkOverrideClockMillisecondsPerGameMinute(Config.TimeCycleSpeed * 1000)
 
----@return integer | number
-function export.getCurrentMinute()
-    return currentMinute
-end
-
----@return integer | number
-function export.getCurrentSecond()
-    return currentSecond
-end
-
-do TriggerServerEvent("x-weathertime:requestWeatherTime") end
-
----Starts the loop - Internal use
-local function initialize()
-    if isInitialized then return end
-
-    isInitialized = true
-
-    CreateThread(function()
-        local waitTime = Config.TimeCycleSpeed * 1000
-
-        NetworkOverrideClockMillisecondsPerGameMinute(waitTime)
-
-        while isInitialized do
-            if not settingForceWeather then
-                setWeather(currentWeather)
-
-                setTime(currentHour, currentMinute, currentSecond + 30)
-            end
-
-            Wait(waitTime)
-        end
-    end)
+    TriggerServerEvent("x-weathertime:requestWeatherTime")
 end
 
 RegisterNetEvent("x-weathertime:syncWeatherTime", function(weather, time)
-    export.forceWeatherTime(weather, time)
-end)
-
-RegisterNetEvent("x-weathertime:initialize", function()
-    if not isInitialized then initialize() end
+    setWeather(weather)
+    setTime(time.hour, time.minute, time.second)
 end)
