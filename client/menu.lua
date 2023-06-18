@@ -1,7 +1,7 @@
 local export = lib.require("files.api")
-local WEATHERS = lib.require("files.weatherTypes") --[[@type weatherTypes]]
+local WEATHERS = lib.require("files.weather") --[[@type weathers]]
 local weatherMenuId = ("%s_main_menu"):format(cache.resource)
-local weatherIcon, weatherTransitionSpeedIcon, weatherRainIcon = "fa-solid fa-temperature-half", "fa-solid fa-clock", "fa-solid fa-raindrops"
+local weatherIcon, weatherRainIcon = "fa-solid fa-temperature-half", "fa-solid fa-raindrops"
 local timeIcon = "fa-solid fa-clock"
 local resourceExport = exports[cache.resource]
 
@@ -13,8 +13,8 @@ function export.openMenu()
         duration = 5000
     }) end
 
-    local currentHour = resourceExport:getCurrentHour()
-    local currentMinute = resourceExport:getCurrentMinute()
+    local currentHour = GetClockHours()
+    local currentMinute = GetClockMinutes()
 
     lib.registerContext({
         id = weatherMenuId,
@@ -37,37 +37,34 @@ function export.openMenu()
 
                     local dialogBox = lib.inputDialog(locale("weather_main_menu_weather"), {
                         { type = "select", label = locale("weather_dialog_menu_weather_label"), icon = weatherIcon, options = weatherOptions, default = joaat(resourceExport:getCurrentWeather()) },
-                        { type = "number", label = locale("weather_dialog_menu_transition_label"), icon = weatherTransitionSpeedIcon, default = 0.0, min = 0.0 },
                         { type = "slider", label = locale("weather_dialog_menu_rain_label"), icon = weatherRainIcon, default = -1, min = 0.0, max = 1.0, step = 0.1 }
                     }, {
                         allowCancel = true
                     })
 
                     if dialogBox then
-                        dialogBox[3] = dialogBox[3] ~= -1 and dialogBox[3] or nil
+                        dialogBox[2] = dialogBox[2] ~= -1 and dialogBox[2] or nil
 
-                        local response, message = lib.callback.await("x-weathertime:setNewWeather", false, dialogBox[1], { transitionSpeed = dialogBox[2], rainLevel = dialogBox[3] })
+                        local response = lib.callback.await("x-weathertime:setNewWeather", false, dialogBox[1], { rainLevel = dialogBox[2] })
 
-                        if not response then
-                            if message == "transition_in_progress" then
-                                lib.notify({
-                                    title = locale("weather_main_menu_title"),
-                                    description = locale("transition_in_progress"),
-                                    type = "inform",
-                                    duration = 5000
-                                })
-                            end
-                        elseif dialogBox[2] > 0 then
-                            lib.progressBar({
-                                duration = dialogBox[2] * 1000 + 1000,
-                                label = locale("weather_menu_setting_weather", WEATHERS[dialogBox[1]]),
-                                useWhileDead = true, allowRagdoll = true, allowCuffed = true, allowFalling = true,
-                                canCancel = false
+                        if response then
+                            lib.notify({
+                                title = locale("weather_main_menu_title"),
+                                description = locale("weather_menu_weather_set", WEATHERS[dialogBox[1]]),
+                                type = "success",
+                                duration = 5000
+                            })
+                        else
+                            lib.notify({
+                                title = locale("weather_main_menu_title"),
+                                description = locale("weather_menu_weather_set_error", WEATHERS[dialogBox[1]]),
+                                type = "error",
+                                duration = 5000
                             })
                         end
                     end
 
-                    Wait(500)
+                    Wait(100)
 
                     export.openMenu()
                 end
@@ -89,7 +86,7 @@ function export.openMenu()
                         TriggerServerEvent("x-weathertime:newTime", dialogBox[1])
                     end
 
-                    Wait(500)
+                    Wait(100)
 
                     export.openMenu()
                 end

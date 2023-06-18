@@ -1,13 +1,14 @@
 {
-    "weather_main_menu_title": "Weather/Time Menu",
-    "weather_main_menu_weather": "Change Weather",
-    "weather_main_menu_current_weather": "Current Weather: %s",
-    "weather_dialog_menu_weather_label": "Choose a Weather",
-    "weather_dialog_menu_transition_label": "How Fast the Weather Transition Should Take Place? (Seconds)",
-    "weather_dialog_menu_rain_label": "Rain Level?",
-    "weather_menu_setting_weather": "Setting Weather to %s",
-    "weather_main_menu_time": "Change Time",
-    "weather_main_menu_current_time": "Current Time: %s:%s",
-    "weather_dialog_menu_time_label": "Choose a Time",
-    "weather_menu_not_accessible": "The Weather/Time Menu is Not Accessible Now! Wait Until the Current Progress is Finished..."
+  "weather_main_menu_title": "Weather/Time Menu",
+  "weather_main_menu_weather": "Change Weather",
+  "weather_main_menu_current_weather": "Current Weather: %s",
+  "weather_dialog_menu_weather_label": "Choose a Weather",
+  "weather_dialog_menu_transition_label": "How Fast the Weather Transition Should Take Place? (Seconds)",
+  "weather_dialog_menu_rain_label": "Rain Level?",
+  "weather_menu_weather_set": "Weather is set to %s",
+  "weather_menu_weather_set_error": "Changing weather to %s could not happen!",
+  "weather_main_menu_time": "Change Time",
+  "weather_main_menu_current_time": "Current Time: %s:%s",
+  "weather_dialog_menu_time_label": "Choose a Time",
+  "weather_menu_not_accessible": "The Weather/Time Menu is Not Accessible Now! Wait Until the Current Progress is Finished..."
 }
