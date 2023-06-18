@@ -19,18 +19,23 @@ end
 ---@param weather string
 ---@param options? weatherTimeOptions
 local function setWeather(weather, options)
+    SetWeatherOwnedByNetwork(false)
+
     if weather ~= currentWeather then
         currentRainLevel = options?.rainLevel
 
         ClearOverrideWeather()
         ClearWeatherTypePersist()
+
+        SetWeatherTypeNowPersist(weather)
+        SetOverrideWeather(weather)
+        SetWeatherTypeTransition(joaat(weather), 821931868, 0.5) -- mixes the weather with clouds so we can have volumetric clouds...
     else
         currentRainLevel = options?.rainLevel or currentRainLevel
     end
 
-    SetWeatherTypePersist(weather)
-    SetWeatherTypeNow(weather)
-    SetOverrideWeather(weather)
+    -- SetWeatherTypeNowPersist(weather)
+    -- SetOverrideWeather(weather)
 
     local isXmas = weather == "XMAS"
     local rainLevel = currentRainLevel or (weather == "RAIN" and 0.5) or (weather == "THUNDER" and 1.0) or 0.0
@@ -87,4 +92,13 @@ do TriggerServerEvent("x-weathertime:requestWeatherTime") end
 
 RegisterNetEvent("x-weathertime:syncWeatherTime", function(weather, time, options)
     export.forceWeatherTime(weather, time, options)
+end)
+
+CreateThread(function()
+    while true do
+        SetWeatherTypeNowPersist(currentWeather)
+        SetOverrideWeather(currentWeather)
+
+        Wait(2000)
+    end
 end)
