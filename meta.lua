@@ -1,7 +1,6 @@
 ---@meta
 
 ---@class weatherTimeOptions
----@field transitionSpeed? number
 ---@field rainLevel? number
 
 ---@class time

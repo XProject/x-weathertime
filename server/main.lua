@@ -1,7 +1,6 @@
 local export = lib.require("files.api")
 local WEATHERS = lib.require("files.weather") --[[@type weathers]]
 local currentWeather, currentHour, currentMinute, currentSecond
-local isWeatherTransitionInProgress
 
 ---@param source? integer
 ---@param options? weatherTimeOptions
@@ -13,8 +12,6 @@ end
 ---@param options? weatherTimeOptions
 ---@return boolean, string?
 function export.setWeather(weather, options)
-    if isWeatherTransitionInProgress then return false, "transition_in_progress" end
-
     local typeWeather = type(weather)
 
     if typeWeather ~= "string" and typeWeather ~= "number" and typeWeather ~= "nil" then return false end
@@ -26,14 +23,6 @@ function export.setWeather(weather, options)
     currentWeather = weather
 
     syncWeatherTime(-1, options)
-
-    isWeatherTransitionInProgress = type(options?.transitionSpeed) == "number" and options?.transitionSpeed > 0 ---@diagnostic disable-line: need-check-nil
-
-    if isWeatherTransitionInProgress then
-        SetTimeout(options?.transitionSpeed, function() ---@diagnostic disable-line: need-check-nil
-            isWeatherTransitionInProgress = nil
-        end)
-    end
 
     return true
 end
