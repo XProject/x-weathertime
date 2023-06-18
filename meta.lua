@@ -2,6 +2,7 @@
 
 ---@class weatherTimeOptions
 ---@field rainLevel? number
+---@field blackout? boolean
 
 ---@class time
 ---@field hour? integer (passing wrong data (e.g. hour above 24) will cause the game to crash)

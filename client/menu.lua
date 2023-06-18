@@ -37,15 +37,14 @@ function export.openMenu()
 
                     local dialogBox = lib.inputDialog(locale("weather_main_menu_weather"), {
                         { type = "select", label = locale("weather_dialog_menu_weather_label"), icon = weatherIcon, options = weatherOptions, default = joaat(resourceExport:getCurrentWeather()) },
-                        { type = "slider", label = locale("weather_dialog_menu_rain_label"), icon = weatherRainIcon, default = -1, min = 0.0, max = 1.0, step = 0.1 }
+                        { type = "slider", label = locale("weather_dialog_menu_rain_label"), icon = weatherRainIcon, default = GetRainLevel(), min = 0.0, max = 1.0, step = 0.1 },
+                        { type = "checkbox", label = locale("weather_dialog_menu_blackout_label"), checked = resourceExport:isBlackout() }
                     }, {
                         allowCancel = true
                     })
 
                     if dialogBox then
-                        dialogBox[2] = dialogBox[2] ~= -1 and dialogBox[2] or nil
-
-                        local response = lib.callback.await("x-weathertime:setNewWeather", false, dialogBox[1], { rainLevel = dialogBox[2] })
+                        local response = lib.callback.await("x-weathertime:setNewWeather", false, dialogBox[1], { rainLevel = dialogBox[2], blackout = dialogBox[3] })
 
                         if response then
                             lib.notify({

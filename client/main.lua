@@ -1,7 +1,7 @@
 local export = lib.require("files.api")
 local VALID_TIME_TYPES = lib.require("files.timeTypes") --[[@type validTimeTypes]]
 local WEATHERS, VALID_WEATHER_TYPES = lib.require("files.weather"), lib.require("files.weatherTypes") --[[@type weathers]] --[[@type validWeatherTypes]]
-local currentWeather, currentRainLevel
+local currentWeather, currentRainLevel, currentBlackout
 
 ---@param hour integer
 ---@param minute integer
@@ -39,13 +39,17 @@ local function setWeather(weather, options)
 
     local isXmas = weather == "XMAS"
     local rainLevel = currentRainLevel or (weather == "RAIN" and 0.5) or (weather == "THUNDER" and 1.0) or 0.0
+    local blackout = options?.blackout or (options?.blackout == nil and currentBlackout) or false ---@diagnostic disable-line: need-check-nil
 
     SetForceVehicleTrails(isXmas)
     SetForcePedFootstepsTracks(isXmas)
     SetRainLevel(rainLevel)
+    SetArtificialLightsState(blackout == true)
+    SetArtificialLightsStateAffectsVehicles(false)
 
     currentWeather = weather
     currentRainLevel = rainLevel
+    currentBlackout = blackout
 end
 
 ---@param weather? string | integer | number
@@ -88,6 +92,11 @@ function export.getCurrentWeather()
     return currentWeather
 end
 
+---@return boolean
+function export.isBlackout()
+    return currentBlackout == true
+end
+
 do TriggerServerEvent("x-weathertime:requestWeatherTime") end
 
 RegisterNetEvent("x-weathertime:syncWeatherTime", function(weather, time, options)
@@ -96,8 +105,8 @@ end)
 
 CreateThread(function()
     while true do
-        SetWeatherTypeNowPersist(currentWeather)
         SetOverrideWeather(currentWeather)
+        SetWeatherTypeNowPersist(currentWeather)
 
         Wait(2000)
     end

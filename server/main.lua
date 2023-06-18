@@ -1,26 +1,31 @@
 local export = lib.require("files.api")
-local WEATHERS = lib.require("files.weather") --[[@type weathers]]
-local currentWeather, currentHour, currentMinute, currentSecond
+local WEATHERS, VALID_WEATHER_TYPES = lib.require("files.weather"), lib.require("files.weatherTypes") --[[@type weathers]] --[[@type validWeatherTypes]]
+local currentWeather, currentRainLevel, currentBlackout
+local currentHour, currentMinute, currentSecond
 
 ---@param source? integer
 ---@param options? weatherTimeOptions
 local function syncWeatherTime(source, options)
+    options = options or { rainLevel = currentRainLevel, blackout = currentBlackout }
+
     TriggerClientEvent("x-weathertime:syncWeatherTime", source or -1, currentWeather, { hour = currentHour, minute = currentMinute, second = currentSecond }, options)
 end
 
 ---@param weather? string | integer | number
 ---@param options? weatherTimeOptions
----@return boolean, string?
+---@return boolean
 function export.setWeather(weather, options)
     local typeWeather = type(weather)
 
-    if typeWeather ~= "string" and typeWeather ~= "number" and typeWeather ~= "nil" then return false end
+    if not VALID_WEATHER_TYPES[typeWeather] then return false end
 
     weather = WEATHERS[typeWeather == "string" and joaat(weather) or weather] --[[@as string?]]
 
     if not weather then return false end
 
     currentWeather = weather
+    currentRainLevel = options?.rainLevel
+    currentBlackout = options?.blackout
 
     syncWeatherTime(-1, options)
 
@@ -49,8 +54,8 @@ function export.setTime(hour, minute, second)
 end
 
 do
-    export.setWeather(Config.StartingWeather)
-    export.setTime(Config.StartingTime.Hour, Config.StartingTime.Minute, Config.StartingTime.Second)
+    export.setWeather(Config.Starting.Weather, {rainLevel = Config.Starting.RainLevel, blackout = Config.Starting.Blackout})
+    export.setTime(Config.Starting.Hour, Config.Starting.Minute, Config.Starting.Second)
 end
 
 RegisterServerEvent("x-weathertime:requestWeatherTime", function()
